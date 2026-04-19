@@ -4,9 +4,7 @@ import UserPage from './pages/UserPage';
 import AdminPage from './pages/AdminPage';
 import './styles/global.css';
 
-// Logo Assets (Paths provided by user's plan)
 import ieeeLogo from './assets/ieee_logo.png';
-import upesLogo from './assets/upes_logo.png';
 
 function App() {
   const [user, setUser] = useState(null); // { role: 'user' | 'admin', name?, sapId? }
@@ -37,39 +35,39 @@ function App() {
     setCurrentPath('/');
   };
 
-  // Logos Component
   const Branding = () => (
     <div className="brand-logos">
       <img src={ieeeLogo} alt="IEEE" className="logo-ieee" onError={(e) => e.target.style.display='none'} />
-      <img src={upesLogo} alt="UPES" className="logo-upes" onError={(e) => e.target.style.display='none'} />
     </div>
   );
 
   if (!user) {
     return (
-      <>
+      <div className="layout-wrapper">
+        <div className="watermark">IEEE</div>
         <Branding />
-        <LandingPage onLogin={handleLogin} />
-      </>
+        <main className="main-content">
+          <LandingPage onLogin={handleLogin} />
+        </main>
+      </div>
     );
   }
 
   return (
-    <>
+    <div className="layout-wrapper">
       <div className="watermark">IEEE</div>
       <Branding />
-      <div className="exit-container">
-        <button className="exit-btn" onClick={handleLogout}>Exit</button>
-      </div>
-      
-      <main style={{ width: '100%', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <main className="main-content">
         {user.role === 'admin' ? (
           <AdminPage />
         ) : (
           <UserPage userData={user} />
         )}
       </main>
-    </>
+      <div className="exit-container">
+        <button className="exit-btn" onClick={handleLogout}>Exit</button>
+      </div>
+    </div>
   );
 }
 

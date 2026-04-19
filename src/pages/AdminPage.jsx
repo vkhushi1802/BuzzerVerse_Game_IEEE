@@ -41,11 +41,11 @@ const AdminPage = () => {
   return (
     <div className="arena-box" style={{ maxWidth: '850px', width: '95%', height: 'auto', maxHeight: '90vh' }}>
       <h1 className="title" style={{ fontSize: 'clamp(1.5rem, 5vh, 2.5rem)', marginBottom: '1rem' }}>TOURNAMENT DASHBOARD</h1>
-      
+
       {/* Round Selection Tabs - Compact & Focused */}
       <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', marginBottom: '1rem' }}>
         {[0, 1, 2].map(i => (
-          <button 
+          <button
             key={i}
             onClick={() => setViewRound(i)}
             style={{
@@ -71,15 +71,15 @@ const AdminPage = () => {
           <h3 style={{ color: 'var(--gta-magenta)', fontSize: '0.9rem', fontWeight: 800 }}>
             {viewRound === syncState.currentRoundIndex ? 'LIVE MONITOR' : `ROUND ${viewRound + 1} LOGS`}
           </h3>
-          
+
           {viewRound === syncState.currentRoundIndex && currentRound.status !== 'finished' && (
-            <button 
-              className="capsule-btn" 
-              onClick={currentRound.status === 'active' ? handleEndRound : handleStartRound} 
-              style={{ 
-                margin: 0, 
-                padding: '0.5rem 1.2rem', 
-                fontSize: '0.8rem', 
+            <button
+              className="capsule-btn"
+              onClick={currentRound.status === 'active' ? handleEndRound : handleStartRound}
+              style={{
+                margin: 0,
+                padding: '0.5rem 1.2rem',
+                fontSize: '0.8rem',
                 width: 'auto',
                 background: currentRound.status === 'active' ? 'var(--upes-accent)' : 'var(--success-green)',
                 color: 'white'
@@ -96,12 +96,12 @@ const AdminPage = () => {
             <span style={{ textAlign: 'center' }}>ID</span>
             <span style={{ textAlign: 'right' }}>DELTA</span>
           </div>
-          
+
           {sortedClicks.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '3rem', opacity: 0.3, fontSize: '0.9rem' }}>Awaiting signals...</div>
           ) : (
             sortedClicks.map((click, index) => (
-              <div key={index} className="log-item" style={{ 
+              <div key={index} className="log-item" style={{
                 background: index < 3 ? 'rgba(34, 211, 238, 0.05)' : 'transparent',
                 borderLeft: index < 3 ? '3px solid var(--gta-cyan)' : 'none',
                 padding: '10px 8px'
@@ -110,7 +110,7 @@ const AdminPage = () => {
                   <span style={{ fontWeight: 800, color: index < 3 ? 'var(--gta-cyan)' : 'white', fontSize: '0.85rem' }}>#{index + 1} {click.name}</span>
                 </div>
                 <div style={{ textAlign: 'center', opacity: 0.5, fontSize: '0.75rem' }}>{click.sapId}</div>
-                <div style={{ textAlign: 'right', fontWeight: 700, fontSize: '0.85rem', color: index === 0 ? 'var(--success-green)' : 'white' }}>+{(click.msDelta/1000).toFixed(3)}s</div>
+                <div style={{ textAlign: 'right', fontWeight: 700, fontSize: '0.85rem', color: index === 0 ? 'var(--success-green)' : 'white' }}>+{(click.msDelta / 1000).toFixed(3)}s</div>
               </div>
             ))
           )}

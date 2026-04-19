@@ -8,7 +8,7 @@ const UserPage = ({ userData }) => {
   const [localStatus, setLocalStatus] = useState('lobby'); // lobby, countdown, buzzer, wait_results
   const [countdown, setCountdown] = useState(10);
   const [wasted, setWasted] = useState({ show: false, text: '' });
-  
+
   const timerRef = useRef(null);
 
   const currentRoundIndex = syncState.currentRoundIndex;
@@ -20,7 +20,7 @@ const UserPage = ({ userData }) => {
     if (syncState.tournamentStatus === 'registration' || currentRound.status === 'pending') {
       setLocalStatus('lobby');
       if (timerRef.current) clearInterval(timerRef.current);
-    } 
+    }
     else if (currentRound.status === 'active' && localStatus === 'lobby') {
       // Start countdown
       setLocalStatus('countdown');
@@ -37,7 +37,7 @@ const UserPage = ({ userData }) => {
       }, 1000);
     }
     else if (currentRound.status === 'finished') {
-       setLocalStatus('results');
+      setLocalStatus('results');
     }
 
     return () => {
@@ -102,15 +102,15 @@ const UserPage = ({ userData }) => {
 
         {localStatus === 'buzzer' && (
           <div className="buzzer-container">
-            <div 
-              className={`buzzer-btn ${myBuzz ? 'disabled' : ''}`} 
+            <div
+              className={`buzzer-btn ${myBuzz ? 'disabled' : ''}`}
               onClick={handleBuzz}
             >
               {myBuzz ? 'LOCKED' : 'TAP'}
             </div>
             <p className="subtitle" style={{ marginTop: '1.5rem', height: '1.2rem', fontSize: '0.85rem', opacity: 0.8 }}>
-              {myBuzz 
-                ? `SUCCESS: Position Registered` 
+              {myBuzz
+                ? `SUCCESS: Position Registered`
                 : (window.innerWidth > 600 ? 'PRESS SPACE OR TAP' : 'TAP THE BUZZER!')}
             </p>
           </div>
@@ -126,7 +126,7 @@ const UserPage = ({ userData }) => {
               <span style={{ fontSize: '0.8rem', fontWeight: 600 }}>Round {i + 1}</span>
               <span style={{ textAlign: 'center', fontSize: '0.6rem', letterSpacing: '1px' }}>{r.status.toUpperCase()}</span>
               <span style={{ textAlign: 'right', fontWeight: 800, fontSize: '0.8rem', color: click ? 'var(--success-green)' : 'inherit' }}>
-                {click ? `${(click.msDelta/1000).toFixed(3)}s` : (r.status === 'finished' ? '---' : '...')}
+                {click ? `${(click.msDelta / 1000).toFixed(3)}s` : (r.status === 'finished' ? '---' : '...')}
               </span>
             </div>
           );

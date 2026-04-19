@@ -8,18 +8,27 @@ const LandingPage = ({ onLogin }) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (role === 'user') {
       if (formData.name && formData.sapId) {
         onLogin({ role: 'user', name: formData.name, sapId: formData.sapId });
       }
     } else if (role === 'admin') {
-      // Mock admin check
-      if (formData.adminId === 'admin' && formData.password === 'ieee2025') {
-        onLogin({ role: 'admin' });
-      } else {
-        alert('Invalid Admin Credentials');
+      try {
+        const res = await fetch('http://localhost:8000/admin/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ password: formData.password })
+        });
+        if (res.ok) {
+          const data = await res.json();
+          onLogin({ role: 'admin', token: data.token });
+        } else {
+          alert('Invalid Admin Credentials');
+        }
+      } catch (err) {
+        alert('Cannot reach server');
       }
     }
   };
@@ -63,13 +72,6 @@ const LandingPage = ({ onLogin }) => {
               </>
             ) : (
               <>
-                <input
-                  className="input-field"
-                  name="adminId"
-                  placeholder="Admin ID"
-                  required
-                  onChange={handleInputChange}
-                />
                 <input
                   className="input-field"
                   type="password"

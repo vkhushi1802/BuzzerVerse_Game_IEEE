@@ -159,8 +159,8 @@ app.add_middleware(
 #       AUTH CONFIG
 # =========================
 
-ADMIN_HASH = "$2b$12$ycivzybObniC4pKaYKl0EeYxFQYf9hi9srEpWbwIYOkSJKOglXB.G"
-SECRET_KEY = "super_secret_key_change_this"
+ADMIN_HASH = "$2b$12$9iX825JtWSAX0qEkL9.JAuJe74uwB3W2wrn8bR6YtHl1uKG.9SX62"
+SECRET_KEY = "a9f83j29fj39f8j29fj2f9j2f9j2f9j2f9j2f9j"
 ALGORITHM = "HS256"
 TOKEN_EXPIRE_MINUTES = 120
 
@@ -492,14 +492,11 @@ async def reset(auth=Depends(verify_token)):
         "question": state.current_question,
     })
 
-    # Also send point updates to users (NOT full leaderboard)
-    for username, points in state.users.items():
-        # Send individual point update to all user connections
-        await manager.broadcast_to_users({
-            "type": "points_update",
-            "username": username,
-            "points": points,
-        })
+    # Broadcast updated points to all clients
+    await manager.broadcast_all({
+        "type": "points_update",
+        "users": dict(state.users)
+    })
 
     return {
         "status": "reset",
@@ -552,19 +549,11 @@ async def conclude(auth=Depends(verify_token)):
     for i, entry in enumerate(leaderboard):
         entry["rank"] = i + 1
 
-    # Broadcast leaderboard to admin + spectator ONLY
-    await manager.broadcast_to_admins_and_spectators({
+    # Broadcast leaderboard to ALL clients
+    await manager.broadcast_all({
         "type": "conclude",
         "leaderboard": leaderboard,
     })
-
-    # Send only individual point updates to users (NOT full leaderboard)
-    for username, points in state.users.items():
-        await manager.broadcast_to_users({
-            "type": "conclude_user",
-            "username": username,
-            "points": points,
-        })
 
     # Persist final scores
     if db_available:

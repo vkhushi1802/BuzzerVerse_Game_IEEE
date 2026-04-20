@@ -13,17 +13,32 @@ const UserPage = ({ userData }) => {
 
   const currentRoundIndex = syncState.currentRoundIndex;
   const currentRound = syncState.rounds[currentRoundIndex];
-  const myBuzz = currentRound.clicks.find(c => c.sapId === userData.sapId);
+  
+  const qIndex = currentRound.currentQuestionIndex;
+  const currentQuestion = currentRound.questions?.[qIndex];
+  
+  const myParticipantState = syncState.participants[userData.sapId] || {};
+  const myBuzz = currentQuestion?.clicks?.find(c => c.sapId === userData.sapId);
 
-  // Sync internal UI status with global engine state
+  // Master UI State Sync
   useEffect(() => {
     if (syncState.tournamentStatus === 'registration' || currentRound.status === 'pending') {
       setLocalStatus('lobby');
-      if (timerRef.current) clearInterval(timerRef.current);
+    } else if (currentQuestion?.status === 'finished') {
+      setLocalStatus('results');
     }
-    else if (currentRound.status === 'active' && localStatus === 'lobby') {
-      // Start countdown
+  }, [syncState.tournamentStatus, currentRound.status, currentQuestion?.status]);
+
+  // Handle new active questions
+  useEffect(() => {
+    if (currentRound.status === 'active' && currentQuestion?.status === 'active') {
       setLocalStatus('countdown');
+    }
+  }, [qIndex, currentRound.status, currentQuestion?.status]);
+
+  // Handle the countdown timer separately
+  useEffect(() => {
+    if (localStatus === 'countdown') {
       setCountdown(10);
       timerRef.current = setInterval(() => {
         setCountdown(prev => {
@@ -36,19 +51,16 @@ const UserPage = ({ userData }) => {
         });
       }, 1000);
     }
-    else if (currentRound.status === 'finished') {
-      setLocalStatus('results');
-    }
 
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [syncState, currentRound.status]);
+  }, [localStatus]);
 
   const handleBuzz = () => {
     if (localStatus !== 'buzzer' || myBuzz) return;
 
-    const success = syncEngine.userBuzz(userData.name, userData.sapId, currentRoundIndex);
+    const success = syncEngine.userBuzz(userData.sapId, currentRoundIndex);
     if (success) {
       const randomTexts = ['TAGGED', 'BUSTED', 'WASTED', 'SMASHED'];
       setWasted({
@@ -68,19 +80,34 @@ const UserPage = ({ userData }) => {
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [localStatus, myBuzz, syncState.frozen]);
+  }, [localStatus, myBuzz]);
 
   return (
-    <div className="arena-box" style={{ height: 'auto', minHeight: 'unset' }}>
+    <div className="arena-box" style={{ height: 'auto', minHeight: 'unset', marginTop: '4rem' }}>
       <WastedOverlay show={wasted.show} text={wasted.text} />
 
-      <div style={{ padding: '0.5rem 0', marginBottom: '0.5rem' }}>
-        <p style={{ fontSize: '0.6rem', opacity: 0.5 }}>PARTICIPANT</p>
-        <p style={{ fontWeight: 800, fontSize: '0.9rem', color: 'var(--gta-cyan)' }}>{userData.name}</p>
-        <p style={{ fontSize: '0.6rem', opacity: 0.3 }}>{userData.sapId}</p>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', padding: '0.5rem 0', marginBottom: '0.5rem' }}>
+        <div>
+          <p style={{ fontSize: '0.6rem', opacity: 0.5 }}>PARTICIPANT</p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+             <span style={{ fontSize: '1.5rem' }}>{myParticipantState.profilePic}</span>
+             <p style={{ fontWeight: 800, fontSize: '1rem', color: 'var(--gta-cyan)' }}>{userData.name}</p>
+          </div>
+          <p style={{ fontSize: '0.6rem', opacity: 0.3 }}>{userData.sapId}</p>
+        </div>
+        
+        <div style={{ textAlign: 'right' }}>
+           <p style={{ fontSize: '0.6rem', opacity: 0.5 }}>BALANCE</p>
+           <p style={{ fontWeight: 900, fontSize: '1.2rem', color: '#ffd700' }}>🪙 {myParticipantState.points || 0}</p>
+        </div>
       </div>
 
-      <h2 className="title" style={{ fontSize: 'clamp(1.5rem, 5vh, 2.5rem)', margin: '0.5rem 0' }}>ROUND {currentRoundIndex + 1}</h2>
+      <h2 className="title" style={{ fontSize: 'clamp(1.5rem, 4vh, 2rem)', margin: '0.2rem 0', color: 'var(--gta-magenta)' }}>
+         {currentRound.name.toUpperCase()}
+      </h2>
+      <p style={{ textAlign: 'center', fontSize: '0.8rem', opacity: 0.8, fontWeight: 700, letterSpacing: '2px', marginBottom: '1rem' }}>
+         QUESTION {currentRound.questions?.length || 1}
+      </p>
 
       {/* Main Game Stage - Dynamic but spacious */}
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', minHeight: '32vh', padding: '1rem 0' }}>
@@ -115,22 +142,33 @@ const UserPage = ({ userData }) => {
             </p>
           </div>
         )}
+
+        {localStatus === 'results' && (
+           <div style={{ animation: 'fadeIn 0.5s ease', textAlign: 'center' }}>
+             <p className="subtitle" style={{ fontSize: '1.2rem', color: 'var(--success-green)' }}>ROUND PAUSED</p>
+             <p style={{ opacity: 0.6, fontSize: '0.8rem', marginTop: '0.5rem' }}>Look at the main screen for results!</p>
+           </div>
+        )}
       </div>
 
       <div className="log-card" style={{ marginTop: 'auto', padding: '0.75rem' }}>
-        <h4 style={{ fontSize: '0.7rem', color: 'var(--gta-cyan)', marginBottom: '0.4rem', fontWeight: 800, opacity: 0.6, letterSpacing: '1px' }}>PERSONAL PERFORMANCE</h4>
-        {syncState.rounds.map((r, i) => {
-          const click = r.clicks.find(c => c.sapId === userData.sapId);
+        <h4 style={{ fontSize: '0.7rem', color: 'var(--gta-cyan)', marginBottom: '0.4rem', fontWeight: 800, opacity: 0.6, letterSpacing: '1px' }}>CURRENT ROUND PERFORMANCE</h4>
+        {currentRound.questions?.map((q, i) => {
+          const click = q.clicks.find(c => c.sapId === userData.sapId);
+          const evalRes = q.evaluations[userData.sapId];
+          
           return (
-            <div key={i} className="log-item" style={{ padding: '8px 0', opacity: i === currentRoundIndex ? 1 : 0.35 }}>
-              <span style={{ fontSize: '0.8rem', fontWeight: 600 }}>Round {i + 1}</span>
-              <span style={{ textAlign: 'center', fontSize: '0.6rem', letterSpacing: '1px' }}>{r.status.toUpperCase()}</span>
+            <div key={i} className="log-item" style={{ padding: '8px 0', opacity: i === qIndex ? 1 : 0.4 }}>
+              <span style={{ fontSize: '0.8rem', fontWeight: 600 }}>Q{i + 1}</span>
+              <span style={{ textAlign: 'center', fontSize: '0.6rem', letterSpacing: '1px' }}>
+                 {evalRes === true ? '✅' : evalRes === false ? '❌' : q.status.toUpperCase()}
+              </span>
               <span style={{ textAlign: 'right', fontWeight: 800, fontSize: '0.8rem', color: click ? 'var(--success-green)' : 'inherit' }}>
-                {click ? `${(click.msDelta / 1000).toFixed(3)}s` : (r.status === 'finished' ? '---' : '...')}
+                {click ? `+ ${(click.msDelta / 1000).toFixed(3)}s` : '---'}
               </span>
             </div>
           );
-        })}
+        }) || <div style={{ opacity: 0.5, fontSize: '0.7rem' }}>No data</div>}
       </div>
     </div>
   );

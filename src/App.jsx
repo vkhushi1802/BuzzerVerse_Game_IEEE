@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import LandingPage from './pages/LandingPage';
 import UserPage from './pages/UserPage';
 import AdminPage from './pages/AdminPage';
+import LeaderboardPage from './pages/LeaderboardPage';
+import { syncEngine } from './shared/syncEngine';
 import './styles/global.css';
 
 import ieeeLogo from './assets/ieee_logo.png';
@@ -24,6 +26,7 @@ function App() {
       history.pushState({}, '', '/admin');
       setCurrentPath('/admin');
     } else {
+      syncEngine.registerParticipant(userData.name, userData.sapId);
       history.pushState({}, '', '/game');
       setCurrentPath('/game');
     }
@@ -41,13 +44,28 @@ function App() {
     </div>
   );
 
+  if (currentPath === '/leaderboard') {
+    return (
+      <div className="layout-wrapper">
+        <div className="watermark">IEEE</div>
+        <Branding />
+        <main className="main-content" style={{ display: 'flex', flexDirection: 'column' }}>
+          <LeaderboardPage />
+          <div style={{ marginTop: 'auto', textAlign: 'center' }}>
+             <button className="capsule-btn" onClick={() => { history.pushState({}, '', '/'); setCurrentPath('/'); }} style={{ background: 'var(--ieee-blue)', color: 'white', border: 'none', margin: '2rem auto' }}>GO BACK</button>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
   if (!user) {
     return (
       <div className="layout-wrapper">
         <div className="watermark">IEEE</div>
         <Branding />
         <main className="main-content">
-          <LandingPage onLogin={handleLogin} />
+          <LandingPage onLogin={handleLogin} onPushLeaderboard={() => { history.pushState({}, '', '/leaderboard'); setCurrentPath('/leaderboard'); }} />
         </main>
       </div>
     );

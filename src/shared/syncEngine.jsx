@@ -1,19 +1,22 @@
 // src/shared/syncEngine.jsx
 const STORAGE_KEY = 'buzzerverse_tournament_state';
 
+const ANIMALS = ['🐶', '🐱', '🐭', '🐹', '🐰', '🦊', '🐻', '🐼', '🐨', '🐯', '🦁', '🐮', '🐷', '🐸', '🐵', '🐔', '🐧', '🐦', '🐤', '🦆', '🦅', '🦉', '🦇', '🐺', '🐗', '🐴', '🦄', '🐝', '🪱', '🐛', '🦋', '🐌', '🐞', '🐜', '🪰', '🪲', '🪳', '🦟', '🦗', '🕷', '🦂', '🐢', '🐍', '🦎', '🦖', '🦕', '🐙', '🦑', '🦐', '🦞', '🦀', '🐡', '🐠', '🐟', '🐬', '🐳', '🐋', '🦈', '🦭'];
+
 class SyncEngine {
   constructor() {
     this.listeners = [];
 
     this.defaultState = {
       rounds: [
-        { clicks: [], startTime: 0, status: 'pending' },
-        { clicks: [], startTime: 0, status: 'pending' },
-        { clicks: [], startTime: 0, status: 'pending' }
+        { name: 'Frontend', status: 'pending', currentQuestionIndex: 0, questions: [{ status: 'pending', clicks: [], evaluations: {} }] },
+        { name: 'Backend', status: 'pending', currentQuestionIndex: 0, questions: [{ status: 'pending', clicks: [], evaluations: {} }] },
+        { name: 'Mystery', status: 'pending', currentQuestionIndex: 0, questions: [{ status: 'pending', clicks: [], evaluations: {} }] }
       ],
       currentRoundIndex: 0,
-      participants: {}, // sapId -> { name }
+      participants: {}, // sapId -> { name, profilePic, points }
       tournamentStatus: 'registration', // registration, ongoing, finished
+      showPointsOnLeaderboard: true,
     };
 
     if (typeof window !== 'undefined') {
@@ -25,6 +28,11 @@ class SyncEngine {
 
       if (!localStorage.getItem(STORAGE_KEY)) {
         this.saveState(this.defaultState);
+      } else {
+        const state = this.getState();
+        if (!state.rounds[0].questions) {
+          this.saveState(this.defaultState);
+        }
       }
     }
   }
@@ -56,49 +64,111 @@ class SyncEngine {
     this.listeners.forEach(l => l(state));
   }
 
-  // --- REGISTRATION ---
   registerParticipant(name, sapId) {
     let state = this.getState();
-    state.participants[sapId] = { name };
-    this.saveState(state);
+    if (!state.participants[sapId]) {
+      const profilePic = ANIMALS[Math.floor(Math.random() * ANIMALS.length)];
+      state.participants[sapId] = { name, profilePic, points: 0 };
+      this.saveState(state);
+    }
   }
 
-  // --- ADMIN ACTIONS ---
   adminStartRound(index) {
     let state = this.getState();
     state.currentRoundIndex = index;
     state.rounds[index].status = 'active';
-    state.rounds[index].startTime = Date.now();
-    state.rounds[index].clicks = [];
+    state.rounds[index].currentQuestionIndex = 0;
+    state.rounds[index].questions = [{ 
+      status: 'active', 
+      clicks: [], 
+      evaluations: {},
+      startTime: Date.now() 
+    }];
     state.tournamentStatus = 'ongoing';
     this.saveState(state);
   }
 
-  adminEndRound(index) {
+  adminNextQuestion(index) {
     let state = this.getState();
-    state.rounds[index].status = 'finished';
+    const round = state.rounds[index];
+    if (round.status === 'active') {
+       if (round.questions[round.currentQuestionIndex]) {
+           round.questions[round.currentQuestionIndex].status = 'finished';
+       }
+       round.questions.push({
+           status: 'active',
+           clicks: [],
+           evaluations: {},
+           startTime: Date.now()
+       });
+       round.currentQuestionIndex = round.questions.length - 1;
+       this.saveState(state);
+    }
+  }
+
+  adminEvaluateUser(sapId, roundIndex, qIndex, isCorrect) {
+      let state = this.getState();
+      const question = state.rounds[roundIndex].questions[qIndex];
+      if (!question) return;
+
+      const prevEval = question.evaluations[sapId];
+      let pointChange = 0;
+
+      if (prevEval !== undefined) {
+          if (prevEval === true) pointChange -= 10;
+          if (prevEval === false) pointChange += 5;
+      }
+
+      if (isCorrect === true) pointChange += 10;
+      if (isCorrect === false) pointChange -= 5;
+      
+      question.evaluations[sapId] = isCorrect;
+      
+      if (state.participants[sapId]) {
+          if (typeof state.participants[sapId].points !== 'number') {
+              state.participants[sapId].points = 0;
+          }
+          state.participants[sapId].points += pointChange;
+      }
+
+      this.saveState(state);
+  }
+
+  adminConcludeRound(index) {
+    let state = this.getState();
+    state.rounds[index].status = 'concluded';
+    const qIndex = state.rounds[index].currentQuestionIndex;
+    if (state.rounds[index].questions[qIndex]) {
+         state.rounds[index].questions[qIndex].status = 'finished';
+    }
     this.saveState(state);
+  }
+
+  toggleLeaderboardPoints() {
+      let state = this.getState();
+      state.showPointsOnLeaderboard = !state.showPointsOnLeaderboard;
+      this.saveState(state);
   }
 
   adminResetTournament() {
     this.saveState(this.defaultState);
   }
 
-  // --- USER ACTIONS ---
-  userBuzz(name, sapId, roundIndex) {
+  userBuzz(sapId, roundIndex) {
     let state = this.getState();
     const round = state.rounds[roundIndex];
 
     if (!round || round.status !== 'active') return false;
     
-    // Prevent double clicking in the same round
-    if (round.clicks.find(c => c.sapId === sapId)) return false;
+    const currQuestion = round.questions[round.currentQuestionIndex];
+    if (!currQuestion || currQuestion.status !== 'active') return false;
+
+    if (currQuestion.clicks.find(c => c.sapId === sapId)) return false;
 
     const now = Date.now();
-    const msDelta = now - round.startTime;
+    const msDelta = now - currQuestion.startTime;
 
-    round.clicks.push({
-      name: name,
+    currQuestion.clicks.push({
       sapId: sapId,
       time: now,
       msDelta: msDelta

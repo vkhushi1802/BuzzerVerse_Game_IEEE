@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 
-const LandingPage = ({ onLogin }) => {
+const LandingPage = (props) => {
+  const { onLogin } = props;
   const [role, setRole] = useState(null); // 'user' | 'admin'
   const [formData, setFormData] = useState({ name: '', sapId: '', adminId: '', password: '' });
 
@@ -32,6 +33,8 @@ const LandingPage = ({ onLogin }) => {
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1.2rem', padding: '1rem 0' }}>
           <p className="subtitle">Choose your Role</p>
           <button className="capsule-btn" onClick={() => setRole('user')} style={{ background: 'var(--success-green)', color: 'white' }}>Participant</button>
+          
+          <button className="capsule-btn" onClick={() => props.onPushLeaderboard?.()} style={{ background: 'var(--gta-magenta)', color: 'white' }}>Leaderboard</button>
           <div style={{ display: 'flex', alignItems: 'center', width: '100%', maxWidth: '280px', gap: '10px' }}>
             <div style={{ height: '1px', background: 'rgba(255,255,255,0.1)', flex: 1 }}></div>
             <span style={{ fontSize: '0.8rem', opacity: 0.4 }}>OR</span>
